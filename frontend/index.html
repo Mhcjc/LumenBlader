@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI WeMedia</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">AI WeMedia</div>
+        <div class="nav-links">
+            <a href="#" data-page="accounts" class="nav-link active">博主管理</a>
+            <a href="#" data-page="downloads" class="nav-link">下载中心</a>
+            <a href="#" data-page="analysis" class="nav-link">分析工作台</a>
+        </div>
+        <button id="settings-btn" class="btn-icon" title="设置">&#9881;</button>
+    </nav>
+
+    <main id="app">
+        <div id="page-accounts" class="page active"></div>
+        <div id="page-downloads" class="page"></div>
+        <div id="page-analysis" class="page"></div>
+    </main>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>设置</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="settings-form"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/accounts.js"></script>
+    <script src="/static/js/downloads.js"></script>
+    <script src="/static/js/analysis.js"></script>
+    <script src="/static/js/settings.js"></script>
+</body>
+</html>
