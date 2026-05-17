@@ -1,11 +1,19 @@
+let currentBatchAccountId = null;
+
 async function loadAccounts() {
     const container = document.getElementById('page-accounts');
     container.innerHTML = `
-        <div class="flex flex-between" style="margin-bottom: 20px;">
-            <h1>博主管理</h1>
-            <button class="btn btn-primary" onclick="showAddAccountModal()">+ 添加博主</button>
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">博主管理</h1>
+                <p class="page-subtitle">管理你的抖音和 TikTok 博主列表</p>
+            </div>
+            <button class="btn btn-primary" onclick="showAddAccountModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                添加博主
+            </button>
         </div>
-        <div id="accounts-list" class="grid grid-3"></div>
+        <div id="accounts-list" class="accounts-grid"></div>
     `;
 
     try {
@@ -13,89 +21,110 @@ async function loadAccounts() {
         const list = document.getElementById('accounts-list');
 
         if (accounts.length === 0) {
-            list.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color: var(--text-dim);">暂无博主，点击右上角添加</p>';
+            list.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    <div class="empty-state-title">还没有博主</div>
+                    <div class="empty-state-text">点击上方「添加博主」开始管理你的自媒体账号</div>
+                </div>`;
             return;
         }
 
-        list.innerHTML = accounts.map(acc => `
-            <div class="card">
-                <div class="flex flex-between">
-                    <span class="badge badge-${acc.platform}">${acc.platform === 'douyin' ? '抖音' : 'TikTok'}</span>
-                    <button class="btn-icon" onclick="deleteAccount('${acc.id}')" title="删除">&times;</button>
+        list.innerHTML = accounts.map((acc, i) => `
+            <div class="card account-card" style="animation: pageIn 0.25s ease ${i * 40}ms both">
+                <div class="account-card-top">
+                    <div class="account-card-info">
+                        <span class="badge badge-${acc.platform}">${acc.platform === 'douyin' ? '抖音' : 'TikTok'}</span>
+                        <div class="account-name">${acc.nickname}</div>
+                        <div class="account-meta">${acc.last_synced_at ? new Date(acc.last_synced_at).toLocaleDateString('zh-CN') : '未同步'}</div>
+                    </div>
+                    <button class="btn-icon btn-icon-danger" onclick="deleteAccount('${acc.id}')" title="删除">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                    </button>
                 </div>
-                <h3 style="margin: 8px 0;">${acc.nickname}</h3>
-                <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
-                    ${acc.last_synced_at ? '最后同步: ' + new Date(acc.last_synced_at).toLocaleString() : '未同步'}
-                </p>
-                <div class="flex gap-8">
-                    <button class="btn btn-primary" onclick="startBatchDownload('${acc.id}')">批量下载</button>
-                    <button class="btn btn-secondary" onclick="viewAccountFiles('${acc.folder_name}')">查看内容</button>
+                <div class="account-actions">
+                    <button class="btn btn-primary btn-sm" onclick="startBatchDownload('${acc.id}')">批量下载</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewAccountFiles('${acc.folder_name}')">查看内容</button>
                 </div>
             </div>
         `).join('');
     } catch (e) {
-        container.innerHTML += `<p style="color: var(--danger);">加载失败: ${e.message}</p>`;
+        showToast('加载博主失败: ' + e.message, 'error');
     }
 }
 
 function showAddAccountModal() {
-    const modal = document.getElementById('settings-modal');
-    const form = document.getElementById('settings-form');
-    modal.classList.remove('hidden');
-    modal.querySelector('h2').textContent = '添加博主';
+    document.getElementById('add-account-url').value = '';
+    openModal('add-account-overlay');
+}
 
-    form.innerHTML = `
-        <div class="form-group">
-            <label>博主主页链接</label>
-            <input type="text" id="add-url" placeholder="粘贴抖音或 TikTok 主页链接">
-        </div>
-        <div class="form-group">
-            <label>平台 (留空自动识别)</label>
-            <select id="add-platform">
-                <option value="">自动识别</option>
-                <option value="douyin">抖音</option>
-                <option value="tiktok">TikTok</option>
-            </select>
-        </div>
-        <button class="btn btn-primary" onclick="submitAddAccount()">添加</button>
-    `;
+function closeAddAccount() {
+    closeModal('add-account-overlay');
 }
 
 async function submitAddAccount() {
-    const url = document.getElementById('add-url').value.trim();
-    const platform = document.getElementById('add-platform').value;
-
-    if (!url) { alert('请输入链接'); return; }
+    const url = document.getElementById('add-account-url').value.trim();
+    if (!url) { showToast('请输入链接', 'error'); return; }
 
     try {
-        await API.post('/api/accounts', { url, platform });
-        document.getElementById('settings-modal').classList.add('hidden');
+        await API.post('/api/accounts', { url, platform: '' });
+        closeAddAccount();
+        showToast('博主添加成功', 'success');
         loadAccounts();
     } catch (e) {
-        alert('添加失败: ' + e.message);
+        showToast('添加失败: ' + e.message, 'error');
     }
 }
 
 async function deleteAccount(id) {
-    if (!confirm('确定删除该博主？')) return;
+    if (!confirm('确定删除该博主？本地文件不会被删除。')) return;
     try {
         await API.del(`/api/accounts/${id}`);
+        showToast('博主已删除', 'success');
         loadAccounts();
     } catch (e) {
-        alert('删除失败: ' + e.message);
+        showToast('删除失败: ' + e.message, 'error');
     }
 }
 
 function startBatchDownload(accountId) {
-    document.querySelector('[data-page="downloads"]').click();
-    if (typeof triggerBatchDownload === 'function') {
-        triggerBatchDownload(accountId);
+    currentBatchAccountId = accountId;
+    document.getElementById('batch-earliest').value = '';
+    document.getElementById('batch-latest').value = '';
+    openModal('batch-download-overlay');
+}
+
+function closeBatchDownload() {
+    closeModal('batch-download-overlay');
+}
+
+async function submitBatchDownload() {
+    if (!currentBatchAccountId) return;
+    const earliest = document.getElementById('batch-earliest').value || '';
+    const latest = document.getElementById('batch-latest').value || '';
+
+    const btn = document.getElementById('batch-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 创建中';
+
+    try {
+        await API.post('/api/downloads/batch', { account_id: currentBatchAccountId, earliest, latest });
+        closeBatchDownload();
+        showToast('批量下载任务已创建', 'success');
+        switchPage('downloads');
+    } catch (e) {
+        showToast('批量下载失败: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '开始下载';
     }
 }
 
 function viewAccountFiles(folderName) {
-    document.querySelector('[data-page="analysis"]').click();
-    if (typeof loadAccountAnalysis === 'function') {
-        loadAccountAnalysis(folderName);
-    }
+    switchPage('analysis');
+    setTimeout(() => {
+        if (typeof loadAccountAnalysis === 'function') {
+            loadAccountAnalysis(folderName);
+        }
+    }, 100);
 }
