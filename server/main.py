@@ -60,4 +60,18 @@ def create_app(config: AppConfig, db: Database = None) -> FastAPI:
         async def index():
             return FileResponse(str(frontend_dir / "index.html"))
 
+        @app.get("/app")
+        async def app_page():
+            return FileResponse(str(frontend_dir / "app.html"))
+
     return app
+
+
+if __name__ == "__main__":
+    import uvicorn
+    from .config import load_config
+
+    base_dir = Path(__file__).parent.parent
+    config = load_config(base_dir / "config.json")
+    app = create_app(config)
+    uvicorn.run(app, host=config.server.host, port=config.server.port)

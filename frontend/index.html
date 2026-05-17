@@ -1,55 +1,237 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI WeMedia</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/open-props@1.7.4/open-props.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI WeMedia</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #1d1d1f;
+  --gray-500: #6e6e73;
+  --gray-400: #86868b;
+  --gray-300: #d2d2d7;
+  --gray-100: #f5f5f7;
+  --white: #ffffff;
+  --blue: #0071e3;
+  --blue-hover: #0077ed;
+  --green: #34c759;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 980px;
+  --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, Menlo, monospace;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--white);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Nav */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--gray-300);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(16px, 3vw, 32px);
+}
+.nav-brand {
+  font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.02em; text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-brand svg { color: var(--blue); }
+.nav-links { display: flex; gap: 8px; }
+.nav-link {
+  font-size: 13px; font-weight: 500; color: var(--gray-500);
+  text-decoration: none; padding: 6px 14px; border-radius: var(--radius-pill);
+  transition: all 0.2s;
+}
+.nav-link:hover { color: var(--ink); background: var(--gray-100); }
+
+/* Hero */
+.hero {
+  padding-top: 140px;
+  padding-bottom: 80px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: clamp(20px, 6vw, 80px);
+  padding-right: clamp(20px, 6vw, 80px);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: var(--radius-pill);
+  background: var(--gray-100); font-size: 13px; font-weight: 500;
+  color: var(--gray-500); margin-bottom: 24px;
+  border: 1px solid var(--gray-300);
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+.hero-sub {
+  font-size: clamp(17px, 2.2vw, 21px);
+  font-weight: 400;
+  color: var(--gray-500);
+  line-height: 1.4;
+  max-width: 520px;
+  margin-bottom: 40px;
+}
+.hero-actions {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 17px; font-weight: 400; font-family: var(--font-body);
+  padding: 12px 28px; border-radius: var(--radius-pill); border: none;
+  cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+}
+.btn-primary { background: var(--blue); color: var(--white); }
+.btn-primary:hover { background: var(--blue-hover); }
+.btn-outline {
+  background: transparent; color: var(--blue);
+  border: 1.5px solid var(--blue);
+}
+.btn-outline:hover { background: rgba(0,113,227,0.06); }
+
+/* Cards */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  max-width: 800px;
+  width: 100%;
+  margin-top: 60px;
+}
+.card {
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 4px 20px rgba(0,113,227,0.08);
+  transform: translateY(-2px);
+}
+.card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-icon-blue { background: rgba(0,113,227,0.1); color: var(--blue); }
+.card-icon-green { background: rgba(52,199,89,0.1); color: var(--green); }
+.card-title {
+  font-family: var(--font-display); font-size: 18px;
+  font-weight: 600; letter-spacing: -0.015em;
+}
+.card-desc {
+  font-size: 14px; color: var(--gray-500); line-height: 1.5;
+}
+.card-arrow {
+  font-size: 14px; color: var(--blue); font-weight: 500;
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 4px;
+}
+
+/* Footer */
+.footer {
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-400);
+  border-top: 1px solid var(--gray-300);
+}
+
+@media (max-width: 640px) {
+  .hero { padding-top: 100px; }
+  .cards { grid-template-columns: 1fr; max-width: 400px; }
+  .nav-links { display: none; }
+}
+</style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">AI WeMedia</div>
-        <div class="nav-links">
-            <a href="#" data-page="accounts" class="nav-link active">博主管理</a>
-            <a href="#" data-page="downloads" class="nav-link">下载中心</a>
-            <a href="#" data-page="analysis" class="nav-link">分析工作台</a>
-        </div>
-        <button id="settings-btn" class="btn-icon" title="设置">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-        </button>
-    </nav>
 
-    <main id="app">
-        <div id="page-accounts" class="page active"></div>
-        <div id="page-downloads" class="page"></div>
-        <div id="page-analysis" class="page"></div>
-    </main>
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>
+    <span>AI WeMedia</span>
+  </a>
+  <div class="nav-links">
+    <a href="/app" class="nav-link">打开工作台</a>
+  </div>
+</nav>
 
-    <div id="toast-container"></div>
+<main class="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    本地部署 · 数据自主
+  </div>
+  <h1>AI WeMedia</h1>
+  <p class="hero-sub">一站式管理抖音与 TikTok 博主，批量下载视频，AI 深度分析内容质量与爆款潜力。</p>
+  <div class="hero-actions">
+    <a href="/app" class="btn btn-primary">打开工作台</a>
+  </div>
 
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>设置</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body" id="settings-form"></div>
-        </div>
-    </div>
+  <div class="cards">
+    <a href="/app" class="card">
+      <div class="card-icon card-icon-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+      </div>
+      <div class="card-title">工作台</div>
+      <div class="card-desc">博主管理、下载中心、分析工作台 — 全部功能的统一入口。</div>
+      <span class="card-arrow">打开 &rarr;</span>
+    </a>
+    <a href="/app" class="card">
+      <div class="card-icon card-icon-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </div>
+      <div class="card-title">产品介绍</div>
+      <div class="card-desc">了解 AI WeMedia 的核心功能、工作流和技术亮点。</div>
+      <span class="card-arrow">查看 &rarr;</span>
+    </a>
+  </div>
+</main>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="/static/js/api.js"></script>
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/accounts.js"></script>
-    <script src="/static/js/downloads.js"></script>
-    <script src="/static/js/analysis.js"></script>
-    <script src="/static/js/settings.js"></script>
+<footer class="footer">
+  AI WeMedia &copy; 2026 · 本地部署 · 数据完全掌控在你手中
+</footer>
+
 </body>
 </html>
