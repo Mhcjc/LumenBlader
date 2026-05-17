@@ -1,52 +1,76 @@
 async function loadSettings() {
     const form = document.getElementById('settings-form');
-    form.innerHTML = '<p>加载中...</p>';
+    form.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
 
     try {
         const settings = await API.get('/api/settings');
+        const cookieDy = settings.tiktok_downloader.cookie_douyin || '';
+        const cookieTt = settings.tiktok_downloader.cookie_tiktok || '';
+
         form.innerHTML = `
-            <h3 style="margin-bottom: 12px;">TikTokDownloader</h3>
+            <div class="section-label">TikTokDownloader</div>
             <div class="form-group">
-                <label>API 地址</label>
-                <input type="text" id="s-ttd-url" value="${settings.tiktok_downloader.api_base_url}">
+                <label class="form-label">API 地址</label>
+                <input type="text" class="input" id="s-ttd-url" value="${settings.tiktok_downloader.api_base_url}">
             </div>
             <div class="form-group">
-                <label>抖音 Cookie</label>
-                <input type="text" id="s-ttd-cookie-dy" value="${settings.tiktok_downloader.cookie_douyin}" placeholder="粘贴抖音 Cookie">
+                <label class="form-label">抖音 Cookie</label>
+                <div class="input-with-toggle">
+                    <input type="password" class="input" id="s-ttd-cookie-dy" value="${cookieDy}" placeholder="粘贴抖音 Cookie">
+                    <button class="toggle-visibility" onclick="togglePassword('s-ttd-cookie-dy')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+                <p class="form-hint">${cookieDy.length > 0 ? cookieDy.length + ' 字符' : '未设置'}</p>
             </div>
             <div class="form-group">
-                <label>TikTok Cookie</label>
-                <input type="text" id="s-ttd-cookie-tt" value="${settings.tiktok_downloader.cookie_tiktok}" placeholder="粘贴 TikTok Cookie">
+                <label class="form-label">TikTok Cookie</label>
+                <div class="input-with-toggle">
+                    <input type="password" class="input" id="s-ttd-cookie-tt" value="${cookieTt}" placeholder="粘贴 TikTok Cookie">
+                    <button class="toggle-visibility" onclick="togglePassword('s-ttd-cookie-tt')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+                <p class="form-hint">${cookieTt.length > 0 ? cookieTt.length + ' 字符' : '未设置'}</p>
             </div>
             <div class="form-group">
-                <label>代理</label>
-                <input type="text" id="s-ttd-proxy" value="${settings.tiktok_downloader.proxy}" placeholder="http://127.0.0.1:7890">
-            </div>
-
-            <h3 style="margin: 20px 0 12px;">AI 分析</h3>
-            <div class="form-group">
-                <label>API Key</label>
-                <input type="password" id="s-ai-key" value="${settings.ai.api_key}" placeholder="sk-...">
-            </div>
-            <div class="form-group">
-                <label>Base URL</label>
-                <input type="text" id="s-ai-url" value="${settings.ai.base_url}">
-            </div>
-            <div class="form-group">
-                <label>模型</label>
-                <input type="text" id="s-ai-model" value="${settings.ai.model}">
+                <label class="form-label">代理</label>
+                <input type="text" class="input" id="s-ttd-proxy" value="${settings.tiktok_downloader.proxy}" placeholder="http://127.0.0.1:7890">
             </div>
 
-            <h3 style="margin: 20px 0 12px;">服务器</h3>
+            <hr class="divider">
+            <div class="section-label">AI 分析</div>
             <div class="form-group">
-                <label>端口</label>
-                <input type="number" id="s-port" value="${settings.server.port}">
+                <label class="form-label">API Key</label>
+                <div class="input-with-toggle">
+                    <input type="password" class="input" id="s-ai-key" value="${settings.ai.api_key}" placeholder="sk-...">
+                    <button class="toggle-visibility" onclick="togglePassword('s-ai-key')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Base URL</label>
+                <input type="text" class="input" id="s-ai-url" value="${settings.ai.base_url}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">模型</label>
+                <input type="text" class="input" id="s-ai-model" value="${settings.ai.model}">
             </div>
 
-            <button class="btn btn-primary mt-16" onclick="saveSettings()">保存</button>
+            <hr class="divider">
+            <div class="section-label">服务器</div>
+            <div class="form-group">
+                <label class="form-label">端口</label>
+                <input type="number" class="input" id="s-port" value="${settings.server.port}">
+            </div>
+
+            <div style="margin-top:24px">
+                <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">保存设置</button>
+            </div>
         `;
     } catch (e) {
-        form.innerHTML = `<p style="color: var(--danger);">加载失败: ${e.message}</p>`;
+        form.innerHTML = `<div class="empty-state"><p style="color:var(--red)">加载失败: ${e.message}</p></div>`;
     }
 }
 
@@ -70,9 +94,9 @@ async function saveSettings() {
 
     try {
         await API.patch('/api/settings', data);
-        alert('设置已保存');
-        document.getElementById('settings-modal').classList.add('hidden');
+        showToast('设置已保存', 'success');
+        closeModal('settings-overlay');
     } catch (e) {
-        alert('保存失败: ' + e.message);
+        showToast('保存失败: ' + e.message, 'error');
     }
 }
