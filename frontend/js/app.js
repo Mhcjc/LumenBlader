@@ -1,38 +1,74 @@
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icons = {
+        success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+        error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+        info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+    };
+    toast.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+function switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.querySelector(`.nav-tab[data-page="${page}"]`).classList.add('active');
+    if (page === 'accounts' && typeof loadAccounts === 'function') loadAccounts();
+    if (page === 'downloads' && typeof loadDownloads === 'function') loadDownloads();
+    if (page === 'analysis' && typeof loadAnalysis === 'function') loadAnalysis();
+}
+
+function togglePassword(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const pages = document.querySelectorAll('.page');
-
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.dataset.page;
-
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-
-            pages.forEach(p => p.classList.remove('active'));
-            document.getElementById(`page-${page}`).classList.add('active');
-
-            // Trigger page load
-            if (page === 'accounts' && typeof loadAccounts === 'function') loadAccounts();
-            if (page === 'downloads' && typeof loadDownloads === 'function') loadDownloads();
-            if (page === 'analysis' && typeof loadAnalysis === 'function') loadAnalysis();
-        });
+    // Tab navigation
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchPage(tab.dataset.page));
     });
 
     // Settings modal
     const settingsBtn = document.getElementById('settings-btn');
-    const modal = document.getElementById('settings-modal');
-    const closeBtn = modal.querySelector('.modal-close');
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const settingsClose = document.getElementById('settings-close');
 
     settingsBtn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
+        openModal('settings-overlay');
         if (typeof loadSettings === 'function') loadSettings();
     });
+    settingsClose.addEventListener('click', () => closeModal('settings-overlay'));
 
-    closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.add('hidden');
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('open');
+        });
+    });
+
+    // Close modals on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.open').forEach(o => o.classList.remove('open'));
+        }
     });
 
     // Initial load
