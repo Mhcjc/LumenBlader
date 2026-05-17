@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI WeMedia — 工作台</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>
+    <span>AI WeMedia</span>
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-page="accounts">博主管理</button>
+    <button class="nav-tab" data-page="downloads">下载中心</button>
+    <button class="nav-tab" data-page="analysis">分析工作台</button>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-settings" id="settings-btn" title="设置">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div id="page-accounts" class="page active">
+    <!-- Populated by accounts.js -->
+  </div>
+  <div id="page-downloads" class="page">
+    <!-- Populated by downloads.js -->
+  </div>
+  <div id="page-analysis" class="page" style="padding-left:0;padding-right:0;max-width:none;">
+    <!-- Populated by analysis.js -->
+  </div>
+</main>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">设置</h2>
+      <button class="modal-close" id="settings-close">&times;</button>
+    </div>
+    <div class="modal-body" id="settings-form"></div>
+  </div>
+</div>
+
+<!-- ADD ACCOUNT MODAL -->
+<div class="modal-overlay" id="add-account-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">添加博主</h2>
+      <button class="modal-close" onclick="closeAddAccount()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">博主主页 URL</label>
+        <input type="text" class="input" id="add-account-url" placeholder="粘贴抖音或 TikTok 主页链接…">
+        <p class="form-hint">支持 douyin.com 和 tiktok.com，自动识别平台</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeAddAccount()">取消</button>
+      <button class="btn btn-primary" onclick="submitAddAccount()">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH DOWNLOAD MODAL -->
+<div class="modal-overlay" id="batch-download-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">批量下载</h2>
+      <button class="modal-close" onclick="closeBatchDownload()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">起始日期（留空不限）</label>
+          <input type="date" class="input" id="batch-earliest">
+        </div>
+        <div class="form-group">
+          <label class="form-label">结束日期（留空不限）</label>
+          <input type="date" class="input" id="batch-latest">
+        </div>
+      </div>
+      <p class="form-hint">留空则下载全部视频</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBatchDownload()">取消</button>
+      <button class="btn btn-primary" id="batch-submit-btn" onclick="submitBatchDownload()">开始下载</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL MODAL -->
+<div class="modal-overlay" id="task-detail-overlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h2 class="modal-title">下载详情</h2>
+      <button class="modal-close" onclick="closeTaskDetail()">&times;</button>
+    </div>
+    <div class="modal-body" id="task-detail-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- SCRIPTS -->
+<script src="/static/js/api.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/accounts.js"></script>
+<script src="/static/js/downloads.js"></script>
+<script src="/static/js/analysis.js"></script>
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/marked.min.js"></script>
+
+</body>
+</html>
