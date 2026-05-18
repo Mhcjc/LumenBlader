@@ -37,7 +37,7 @@ def create_app(config: AppConfig, db: Database = None) -> FastAPI:
         yield
         await db.close()
 
-    app = FastAPI(title="AI WeMedia", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="LumenBlader", version="0.1.0", lifespan=lifespan)
 
     app.state.db = db
     app.state.config = config

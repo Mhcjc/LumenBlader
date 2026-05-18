@@ -20,7 +20,7 @@ TIKTOK_PID=$!
 
 sleep 5
 
-echo "Starting AI WeMedia..."
+echo "Starting LumenBlader..."
 cd "$SCRIPT_DIR"
 .venv/bin/python run.py &
 APP_PID=$!
@@ -28,7 +28,7 @@ APP_PID=$!
 echo ""
 echo "=== Services ==="
 echo "  TikTokDownloader: http://127.0.0.1:5555"
-echo "  AI WeMedia:       http://localhost:8080"
+echo "  LumenBlader:       http://localhost:8080"
 echo "================="
 echo ""
 echo "Press Ctrl+C to stop all services."
