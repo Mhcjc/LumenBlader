@@ -64,13 +64,24 @@ async function loadSettings() {
                 <label class="form-label">端口</label>
                 <input type="number" class="input" id="s-port" value="${settings.server.port}">
             </div>
+        `;
 
-            <div style="margin-top:24px">
-                <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">保存设置</button>
-            </div>
+        const modal = form.closest('.modal');
+        let footer = modal.querySelector('.modal-footer');
+        if (!footer) {
+            footer = document.createElement('div');
+            footer.className = 'modal-footer';
+            modal.appendChild(footer);
+        }
+        footer.innerHTML = `
+            <button class="btn btn-secondary" onclick="closeModal('settings-overlay')">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
         `;
     } catch (e) {
         form.innerHTML = `<div class="empty-state"><p style="color:var(--red)">加载失败: ${e.message}</p></div>`;
+        const modal = form.closest('.modal');
+        const footer = modal.querySelector('.modal-footer');
+        if (footer) footer.innerHTML = '';
     }
 }
 
