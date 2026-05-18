@@ -98,13 +98,6 @@ function renderTaskList(jobs) {
     const container = document.getElementById('download-jobs');
     if (!container) return;
 
-    const filtered = currentTaskFilter === 'all'
-        ? jobs
-        : jobs.filter(j => {
-            if (currentTaskFilter === 'downloading') return j.status === 'downloading' || j.status === 'pending';
-            return j.status === currentTaskFilter;
-        });
-
     if (!jobs || jobs.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -114,6 +107,13 @@ function renderTaskList(jobs) {
             </div>`;
         return;
     }
+
+    const filtered = currentTaskFilter === 'all'
+        ? jobs
+        : jobs.filter(j => {
+            if (currentTaskFilter === 'downloading') return j.status === 'downloading' || j.status === 'pending';
+            return j.status === currentTaskFilter;
+        });
 
     if (filtered.length === 0) {
         container.innerHTML = `
