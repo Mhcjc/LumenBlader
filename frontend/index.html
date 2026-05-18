@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI WeMedia</title>
+<title>LumenBlader</title>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -168,6 +168,89 @@ body {
   margin-top: 4px;
 }
 
+/* Section backgrounds */
+.section-light {
+  background: var(--gray-100); color: var(--ink);
+  padding: clamp(60px, 8vw, 100px) clamp(20px, 6vw, 80px);
+  text-align: center;
+}
+.section-white {
+  background: var(--white); color: var(--ink);
+  padding: clamp(60px, 8vw, 100px) clamp(20px, 6vw, 80px);
+  text-align: center;
+}
+
+/* Section typography */
+.section-eyebrow {
+  font-size: 13px; font-weight: 600; color: var(--blue);
+  letter-spacing: 0.02em; text-transform: uppercase; margin-bottom: 8px;
+}
+.section-title {
+  font-family: var(--font-display); font-size: clamp(28px, 4vw, 42px);
+  font-weight: 600; letter-spacing: -0.025em; line-height: 1.1;
+  margin-bottom: 12px;
+}
+.section-sub {
+  font-size: clamp(15px, 1.8vw, 17px); font-weight: 400;
+  color: var(--gray-500); line-height: 1.4;
+  max-width: 520px; margin: 0 auto 40px;
+}
+
+/* Feature cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px; max-width: 800px; margin: 0 auto;
+}
+.feature-card {
+  background: var(--white); border-radius: var(--radius-lg);
+  padding: 28px 24px; text-align: left;
+  border: 1px solid var(--gray-300);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+.feature-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.feature-icon-blue { background: rgba(0,113,227,0.1); color: var(--blue); }
+.feature-icon-green { background: rgba(52,199,89,0.1); color: var(--green); }
+.feature-icon-orange { background: rgba(255,149,0,0.1); color: #ff9500; }
+.feature-card h3 {
+  font-family: var(--font-display); font-size: 17px;
+  font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.feature-card p {
+  font-size: 14px; color: var(--gray-500); line-height: 1.5;
+}
+
+/* CTA section */
+.cta-section {
+  background: var(--gray-100);
+  padding: clamp(60px, 8vw, 100px) clamp(20px, 6vw, 80px);
+  text-align: center;
+}
+.cta-section h2 {
+  font-family: var(--font-display); font-size: clamp(28px, 4vw, 42px);
+  font-weight: 600; letter-spacing: -0.025em; line-height: 1.1;
+  color: var(--ink); margin-bottom: 12px;
+}
+.cta-section p {
+  font-size: 17px; color: var(--gray-500); margin-bottom: 28px;
+}
+.btn-hero {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 17px; font-weight: 400; font-family: var(--font-body);
+  padding: 12px 28px; border-radius: var(--radius-pill); border: none;
+  cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+}
+.btn-hero-primary { background: var(--blue); color: var(--white); }
+.btn-hero-primary:hover { background: var(--blue-hover); }
+
 /* Footer */
 .footer {
   padding: 20px;
@@ -191,7 +274,7 @@ body {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
     </svg>
-    <span>AI WeMedia</span>
+    <span>LumenBlader</span>
   </a>
   <div class="nav-links">
     <a href="/app" class="nav-link">打开工作台</a>
@@ -203,7 +286,7 @@ body {
     <span class="hero-badge-dot"></span>
     本地部署 · 数据自主
   </div>
-  <h1>AI WeMedia</h1>
+  <h1>LumenBlader</h1>
   <p class="hero-sub">一站式管理抖音与 TikTok 博主，批量下载视频，AI 深度分析内容质量与爆款潜力。</p>
   <div class="hero-actions">
     <a href="/app" class="btn btn-primary">打开工作台</a>
@@ -223,14 +306,75 @@ body {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
       </div>
       <div class="card-title">产品介绍</div>
-      <div class="card-desc">了解 AI WeMedia 的核心功能、工作流和技术亮点。</div>
+      <div class="card-desc">了解 LumenBlader 的核心功能、工作流和技术亮点。</div>
       <span class="card-arrow">查看 &rarr;</span>
     </a>
   </div>
 </main>
 
+  <!-- Features -->
+  <section class="section-light">
+    <div class="section-eyebrow">核心功能</div>
+    <h2 class="section-title">三步完成内容分析</h2>
+    <p class="section-sub">从博主管理到 AI 深度分析，全链路自动化，让你专注于内容策略。</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon feature-icon-blue">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        </div>
+        <h3>博主管理</h3>
+        <p>一键添加抖音、TikTok 博主，自动识别平台、获取昵称、创建本地目录。支持批量操作。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon feature-icon-green">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+        </div>
+        <h3>批量下载</h3>
+        <p>按时间范围批量下载视频，支持并发多线程、断点续传、失败重试。下载进度实时可视。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon feature-icon-orange">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
+        </div>
+        <h3>AI 分析</h3>
+        <p>7 维度 Rubric 打分、爆款潜力预测、改进建议、内容结构拆解。摘要与深度分析两种模式。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow -->
+  <section class="section-white">
+    <div class="section-eyebrow">工作流</div>
+    <h2 class="section-title">从添加到洞察<br>只需三步</h2>
+    <p class="section-sub">无需复杂配置，粘贴链接即可开始。</p>
+    <div class="feature-grid" style="max-width:720px">
+      <div class="feature-card" style="text-align:center">
+        <div style="font-family:var(--font-display);font-size:48px;font-weight:600;color:var(--blue);letter-spacing:-0.03em;margin-bottom:12px">01</div>
+        <h3>添加博主</h3>
+        <p>粘贴抖音或 TikTok 主页链接，自动识别平台并获取信息。</p>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <div style="font-family:var(--font-display);font-size:48px;font-weight:600;color:var(--blue);letter-spacing:-0.03em;margin-bottom:12px">02</div>
+        <h3>批量下载</h3>
+        <p>选择时间范围，一键批量下载所有视频到本地。</p>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <div style="font-family:var(--font-display);font-size:48px;font-weight:600;color:var(--blue);letter-spacing:-0.03em;margin-bottom:12px">03</div>
+        <h3>AI 分析</h3>
+        <p>选择摘要或深度模式，AI 自动生成结构化分析报告。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>开始你的第一次<br>内容分析</h2>
+    <p>无需注册，本地部署，数据完全掌控在你手中。</p>
+    <a href="/app" class="btn-hero btn-hero-primary">打开工作台</a>
+  </section>
+
 <footer class="footer">
-  AI WeMedia &copy; 2026 · 本地部署 · 数据完全掌控在你手中
+  LumenBlader &copy; 2026 · 本地部署 · 数据完全掌控在你手中
 </footer>
 
 </body>
