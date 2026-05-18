@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -41,7 +41,7 @@ class AccountResponse(BaseModel):
     sec_uid: str
     folder_name: str
     created_at: str
-    last_synced_at: str | None = None
+    last_synced_at: Optional[str] = None
 
 
 class DownloadJobResponse(BaseModel):
@@ -54,7 +54,7 @@ class DownloadJobResponse(BaseModel):
     downloaded: int
     failed: int
     created_at: str
-    finished_at: str | None = None
+    finished_at: Optional[str] = None
 
 
 class DownloadItemResponse(BaseModel):
@@ -63,16 +63,16 @@ class DownloadItemResponse(BaseModel):
     video_id: str
     title: str
     status: str
-    error: str | None = None
+    error: Optional[str] = None
 
 
 class AnalysisJobResponse(BaseModel):
     id: str
     video_path: str
-    analysis_path: str | None = None
+    analysis_path: Optional[str] = None
     mode: str
     status: str
-    error: str | None = None
+    error: Optional[str] = None
     created_at: str
 
 
@@ -84,7 +84,7 @@ class FileListItem(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
-    tiktok_downloader: dict | None = None
-    ai: dict | None = None
-    server: dict | None = None
-    materials_root: str | None = None
+    tiktok_downloader: Optional[dict] = None
+    ai: Optional[dict] = None
+    server: Optional[dict] = None
+    materials_root: Optional[str] = None

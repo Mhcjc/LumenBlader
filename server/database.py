@@ -162,6 +162,11 @@ class Database:
         )
         await self._conn.commit()
 
+    async def delete_download_job(self, job_id):
+        await self._conn.execute("DELETE FROM download_items WHERE job_id = ?", (job_id,))
+        await self._conn.execute("DELETE FROM download_jobs WHERE id = ?", (job_id,))
+        await self._conn.commit()
+
     # --- Download Items ---
 
     async def insert_download_item(self, job_id, video_id, title=""):

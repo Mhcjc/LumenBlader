@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 
 class FileManager:
@@ -25,11 +26,17 @@ class FileManager:
             return []
         return self._list_dir(analysis_dir, ".md")
 
-    def get_analysis_content(self, folder_name: str, filename: str) -> str | None:
-        path = self.root / folder_name / "analysis" / filename
-        if not path.exists():
-            return None
-        return path.read_text(encoding="utf-8")
+    def get_analysis_content(self, folder_name: str, filename: str) -> Optional[str]:
+        analysis_dir = self.root / folder_name / "analysis"
+        path = analysis_dir / filename
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+        # Fuzzy match: find file starting with the same video ID
+        video_id = filename.split("_")[0] if "_" in filename else filename.replace(".md", "")
+        for f in analysis_dir.iterdir():
+            if f.is_file() and f.name.startswith(video_id) and f.suffix == ".md":
+                return f.read_text(encoding="utf-8")
+        return None
 
     def write_analysis(self, folder_name: str, filename: str, content: str) -> Path:
         analysis_dir = self.root / folder_name / "analysis"
@@ -40,9 +47,9 @@ class FileManager:
 
     @staticmethod
     def detect_platform(url: str) -> str:
-        if "douyin.com" in url:
+        if "douyin.com" in url or "v.douyin.com" in url:
             return "douyin"
-        if "tiktok.com" in url:
+        if "tiktok.com" in url or "vm.tiktok.com" in url:
             return "tiktok"
         return ""
 

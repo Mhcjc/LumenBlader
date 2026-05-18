@@ -1,13 +1,11 @@
-from anthropic import AsyncAnthropic
+import httpx
 
 
 class ContentAnalyzer:
     def __init__(self, api_key: str, base_url: str, model: str):
         self.model = model
-        self.client = AsyncAnthropic(
-            api_key=api_key,
-            base_url=base_url,
-        )
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
 
     async def generate_summary(
         self,
@@ -28,12 +26,22 @@ class ContentAnalyzer:
         return await self._call_api(prompt)
 
     async def _call_api(self, prompt: str) -> str:
-        message = await self.client.messages.create(
-            model=self.model,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return message.content[0].text
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "max_tokens": 4096,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
 
     @staticmethod
     def _build_summary_prompt(title: str, transcript: str, extra_info: str) -> str:

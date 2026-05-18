@@ -1,4 +1,6 @@
 import re
+from pathlib import Path
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import httpx
@@ -23,9 +25,9 @@ class TikTokDownloaderClient:
             "tab": "post",
         }
         if earliest:
-            payload["earliest"] = earliest
+            payload["earliest"] = earliest.replace("-", "/")
         if latest:
-            payload["latest"] = latest
+            payload["latest"] = latest.replace("-", "/")
         if cookie:
             payload["cookie"] = cookie
         if proxy:
@@ -45,7 +47,7 @@ class TikTokDownloaderClient:
         platform: str = "douyin",
         cookie: str = "",
         proxy: str = "",
-    ) -> dict | None:
+    ) -> Optional[dict]:
         endpoint = "/tiktok/detail" if platform == "tiktok" else "/douyin/detail"
         payload = {"detail_id": video_id}
         if cookie:
@@ -67,7 +69,7 @@ class TikTokDownloaderClient:
         platform: str = "douyin",
         cookie: str = "",
         proxy: str = "",
-    ) -> dict | None:
+    ) -> Optional[dict]:
         endpoint = "/tiktok/user" if platform == "tiktok" else "/douyin/user"
         payload = {"sec_user_id": sec_user_id}
         if cookie:
@@ -82,6 +84,26 @@ class TikTokDownloaderClient:
             if result.get("data"):
                 return result["data"]
             return None
+
+    async def resolve_short_url(self, url: str) -> str:
+        if "v.douyin.com" not in url and "vm.tiktok.com" not in url:
+            return url
+        async with httpx.AsyncClient(timeout=30, follow_redirects=False) as http:
+            resp = await http.get(url)
+            if resp.status_code in (301, 302, 303, 307, 308):
+                return str(resp.headers.get("location", url))
+        return url
+
+    async def download_file(self, url: str, dest: Path) -> Path:
+        """Download a file from URL to dest path. Returns the dest path on success."""
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        async with httpx.AsyncClient(timeout=300, follow_redirects=True) as client:
+            async with client.stream("GET", url) as resp:
+                resp.raise_for_status()
+                with open(dest, "wb") as f:
+                    async for chunk in resp.aiter_bytes(chunk_size=1024 * 1024):
+                        f.write(chunk)
+        return dest
 
     @staticmethod
     def extract_sec_user_id(url: str) -> str:

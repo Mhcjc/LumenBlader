@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+
+cleanup() {
+    echo "Stopping services..."
+    kill $TIKTOK_PID $APP_PID 2>/dev/null
+    wait $TIKTOK_PID $APP_PID 2>/dev/null
+    echo "All stopped."
+}
+trap cleanup EXIT INT TERM
+
+echo "Starting TikTokDownloader (API mode)..."
+cd "$PARENT_DIR/TikTokDownloader"
+# Auto-select: language=1(zh_CN), disclaimer=YES, mode=5(Web API)
+echo -e "1\nYES\n5" | .venv/bin/python main.py &
+TIKTOK_PID=$!
+
+sleep 5
+
+echo "Starting AI WeMedia..."
+cd "$SCRIPT_DIR"
+.venv/bin/python run.py &
+APP_PID=$!
+
+echo ""
+echo "=== Services ==="
+echo "  TikTokDownloader: http://127.0.0.1:5555"
+echo "  AI WeMedia:       http://localhost:8080"
+echo "================="
+echo ""
+echo "Press Ctrl+C to stop all services."
+
+wait

@@ -1,8 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Request
 
 from ..models import AccountCreate, AccountResponse
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=list[AccountResponse])
@@ -23,16 +26,33 @@ async def create_account(body: AccountCreate, request: Request):
     if not platform:
         raise HTTPException(400, "无法识别平台，请手动指定 platform")
 
-    sec_user_id = downloader.extract_sec_user_id(body.url)
+    resolved_url = await downloader.resolve_short_url(body.url)
+
+    sec_user_id = downloader.extract_sec_user_id(resolved_url)
     if not sec_user_id:
         raise HTTPException(400, "无法从 URL 提取用户 ID")
 
-    folder_name = fm.sanitize_folder_name(sec_user_id)
+    # Fetch real nickname from TikTokDownloader
+    config = request.app.state.config
+    cookie = config.tiktok_downloader.cookie_douyin if platform == "douyin" else config.tiktok_downloader.cookie_tiktok
+    try:
+        user_info = await downloader.fetch_user_info(
+            sec_user_id=sec_user_id,
+            platform=platform,
+            cookie=cookie,
+            proxy=config.tiktok_downloader.proxy,
+        )
+        nickname = user_info.get("nickname", sec_user_id) if user_info else sec_user_id
+    except Exception as e:
+        logger.warning(f"Failed to fetch user info: {e}")
+        nickname = sec_user_id
+
+    folder_name = fm.sanitize_folder_name(nickname)
     fm.ensure_account_dir(folder_name)
 
     account = await db.insert_account(
         platform=platform,
-        nickname=sec_user_id,
+        nickname=nickname,
         url=body.url,
         sec_uid=sec_user_id,
         folder_name=folder_name,

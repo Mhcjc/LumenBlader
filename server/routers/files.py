@@ -6,9 +6,23 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 @router.get("/{folder_name}")
 async def list_files(folder_name: str, request: Request):
     fm = request.app.state.file_manager
+    db = request.app.state.db
+
+    videos = fm.list_videos(folder_name)
+    analysis = fm.list_analysis(folder_name)
+
+    # Get analysis job statuses for videos in this folder
+    all_jobs = await db.get_analysis_jobs()
+    job_status_map = {}
+    for job in all_jobs:
+        if job["status"] in ("pending", "processing", "failed"):
+            video_stem = job["video_path"].rsplit("/", 1)[-1].replace(".mp4", "")
+            job_status_map[video_stem] = job["status"]
+
     return {
-        "videos": fm.list_videos(folder_name),
-        "analysis": fm.list_analysis(folder_name),
+        "videos": videos,
+        "analysis": analysis,
+        "analysis_jobs": job_status_map,
     }
 
 
