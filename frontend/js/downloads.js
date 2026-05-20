@@ -140,12 +140,20 @@ function renderTaskList(jobs) {
             : '全部视频';
         const timeAgo = job.created_at ? getTimeAgo(job.created_at) : '';
 
+        const items = job.items || [];
+        const videoTitle = items.length === 1
+            ? (items[0].title || items[0].video_id)
+            : (items.length > 1 ? `${items.length} 个视频` : '');
+
         return `
             <div class="card task-card">
                 <div class="task-header">
                     <div class="task-header-left">
-                        <span class="task-account">${job.account_name || job.id.slice(0, 8) + '…'}</span>
-                        <span class="task-id">${job.id.slice(0, 8)}</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            ${job.platform ? `<span class="badge badge-${job.platform}" style="font-size:9px;padding:1px 5px">${job.platform === 'douyin' ? '抖音' : 'TK'}</span>` : ''}
+                            <span class="task-account">${job.account_name || '未知博主'}</span>
+                        </div>
+                        ${videoTitle ? `<span class="task-video-title" title="${videoTitle}">${videoTitle}</span>` : ''}
                     </div>
                     <div class="task-header-right">
                         <span class="badge ${s.badge}">${s.label}</span>
@@ -174,7 +182,7 @@ function renderTaskList(jobs) {
                     <span class="task-progress-pct">${pct}%</span>
                 </div>
                 <div class="task-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="viewJobItems('${job.id}')">查看详情</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewJobDetail('${job.id}')">查看详情</button>
                     ${job.failed > 0 && !isActive ? `<button class="btn btn-primary btn-sm" onclick="retryFailed('${job.id}')">重试失败项</button>` : ''}
                 </div>
             </div>`;
@@ -245,22 +253,54 @@ async function retryFailed(jobId) {
     }
 }
 
-async function viewJobItems(jobId) {
+async function viewJobDetail(jobId) {
     try {
+        const job = await API.get(`/api/downloads/${jobId}`);
         const items = await API.get(`/api/downloads/${jobId}/items`);
         const statusMap = { completed: '已完成', failed: '失败', downloading: '下载中', pending: '等待中', cancelled: '已取消' };
-        const html = items.map(item => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-200);font-size:13px">
-                <span style="font-family:var(--font-mono);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:12px">${item.title || item.video_id}</span>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span class="badge ${item.status === 'completed' ? 'badge-success' : item.status === 'failed' ? 'badge-danger' : 'badge-warning'}">${statusMap[item.status] || item.status}</span>
+        const badgeMap = { completed: 'badge-success', failed: 'badge-danger', downloading: 'badge-info', pending: 'badge-warning', cancelled: 'badge-warning' };
+        const pct = job.total_videos > 0 ? Math.round((job.downloaded / job.total_videos) * 100) : 0;
+
+        const itemsHtml = items.map(item => `
+            <div class="detail-item">
+                <div class="detail-item-title">${item.title || item.video_id}</div>
+                <div class="detail-item-row">
+                    <span class="badge ${badgeMap[item.status] || 'badge-warning'}">${statusMap[item.status] || item.status}</span>
                     ${item.status === 'failed' ? `<button class="btn btn-primary btn-sm" onclick="retryItem('${jobId}', '${item.id}')" style="font-size:11px;padding:2px 8px">重试</button>` : ''}
                 </div>
+                ${item.error ? `<p class="detail-item-error">${item.error}</p>` : ''}
             </div>
-            ${item.error ? `<p style="color:var(--red);font-size:12px;margin:4px 0 8px">${item.error}</p>` : ''}
         `).join('');
 
-        document.getElementById('task-detail-body').innerHTML = html || '<div class="empty-state"><p class="empty-state-text">暂无下载项</p></div>';
+        document.getElementById('task-detail-body').innerHTML = `
+            <div class="detail-summary">
+                <div class="detail-summary-row">
+                    <span class="detail-label">博主</span>
+                    <span class="detail-value">
+                        ${job.platform ? `<span class="badge badge-${job.platform}" style="font-size:9px;padding:1px 5px;margin-right:6px">${job.platform === 'douyin' ? '抖音' : 'TK'}</span>` : ''}
+                        ${job.account_name || '未知博主'}
+                    </span>
+                </div>
+                <div class="detail-summary-row">
+                    <span class="detail-label">状态</span>
+                    <span class="badge ${badgeMap[job.status] || 'badge-warning'}">${statusMap[job.status] || job.status}</span>
+                </div>
+                <div class="detail-summary-row">
+                    <span class="detail-label">进度</span>
+                    <span class="detail-value">${job.downloaded}/${job.total_videos} (${pct}%)</span>
+                </div>
+                <div class="detail-summary-row">
+                    <span class="detail-label">创建时间</span>
+                    <span class="detail-value">${job.created_at ? new Date(job.created_at).toLocaleString('zh-CN') : '-'}</span>
+                </div>
+                ${job.finished_at ? `<div class="detail-summary-row">
+                    <span class="detail-label">完成时间</span>
+                    <span class="detail-value">${new Date(job.finished_at).toLocaleString('zh-CN')}</span>
+                </div>` : ''}
+            </div>
+            <div class="detail-items-header">下载项</div>
+            <div class="detail-items">${itemsHtml || '<div style="padding:16px 0;color:var(--gray-400);font-size:13px">暂无下载项</div>'}</div>
+        `;
         openModal('task-detail-overlay');
     } catch (e) {
         showToast('加载失败: ' + e.message, 'error');
@@ -275,7 +315,7 @@ async function retryItem(jobId, itemId) {
     try {
         await API.post(`/api/downloads/${jobId}/retry`);
         showToast('正在重试...', 'success');
-        viewJobItems(jobId);
+        viewJobDetail(jobId);
         refreshDownloadJobs();
         startDownloadPolling();
     } catch (e) {

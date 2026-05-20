@@ -144,13 +144,14 @@ function renderVideoList(videos, analyzedSet, analysisJobs) {
             status = 'pending';
             badge = '<span class="badge badge-warning">等待中</span>';
         }
+        const displayName = v.name.replace(/^\d+_/, '').replace(/\.mp4$/, '');
         return `
             <div class="card card-clickable video-card"
                  data-status="${status}" data-stem="${stem}"
                  style="animation:pageIn 0.25s ease ${i * 40}ms both"
                  onclick="toggleReport('${currentFolder}', '${stem}', this)">
                 <div class="video-card-top">
-                    <span class="video-name">${v.name}</span>
+                    <span class="video-name" title="${displayName}">${displayName}</span>
                     ${badge}
                 </div>
                 <div class="video-size">${(v.size / 1024 / 1024).toFixed(1)} MB</div>

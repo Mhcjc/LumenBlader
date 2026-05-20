@@ -47,7 +47,7 @@ class FileManager:
 
     @staticmethod
     def detect_platform(url: str) -> str:
-        if "douyin.com" in url or "v.douyin.com" in url:
+        if "douyin.com" in url or "iesdouyin.com" in url:
             return "douyin"
         if "tiktok.com" in url or "vm.tiktok.com" in url:
             return "tiktok"

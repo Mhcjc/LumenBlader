@@ -32,19 +32,23 @@ async def create_account(body: AccountCreate, request: Request):
     if not sec_user_id:
         raise HTTPException(400, "无法从 URL 提取用户 ID")
 
-    # Fetch real nickname from TikTokDownloader
+    # Fetch nickname from account's video list (TikTokDownloader has no dedicated user info endpoint)
     config = request.app.state.config
     cookie = config.tiktok_downloader.cookie_douyin if platform == "douyin" else config.tiktok_downloader.cookie_tiktok
+    nickname = ""
     try:
-        user_info = await downloader.fetch_user_info(
+        videos = await downloader.fetch_account_videos(
             sec_user_id=sec_user_id,
             platform=platform,
             cookie=cookie,
             proxy=config.tiktok_downloader.proxy,
         )
-        nickname = user_info.get("nickname", sec_user_id) if user_info else sec_user_id
+        if videos and isinstance(videos, list) and len(videos) > 0:
+            nickname = videos[0].get("nickname", "")
     except Exception as e:
-        logger.warning(f"Failed to fetch user info: {e}")
+        logger.warning(f"Failed to fetch account videos for nickname: {e}")
+
+    if not nickname:
         nickname = sec_user_id
 
     folder_name = fm.sanitize_folder_name(nickname)

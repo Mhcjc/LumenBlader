@@ -295,11 +295,13 @@ async def single_download(body: SingleDownloadRequest, request: Request, backgro
     fm = request.app.state.file_manager
     config = request.app.state.config
 
-    video_id = downloader.extract_video_id(body.url)
+    # Resolve short URLs (e.g. v.douyin.com) to full URLs before extracting video ID
+    resolved_url = await downloader.resolve_short_url(body.url)
+    video_id = downloader.extract_video_id(resolved_url)
     if not video_id:
         raise HTTPException(400, "无法从 URL 提取视频 ID")
 
-    platform = fm.detect_platform(body.url)
+    platform = fm.detect_platform(resolved_url)
     if not platform:
         raise HTTPException(400, "无法识别平台")
 
@@ -316,12 +318,9 @@ async def single_download(body: SingleDownloadRequest, request: Request, backgro
     if isinstance(detail, list):
         detail = detail[0] if detail else {}
 
-    # Find or create account
-    author = detail.get("author", {})
-    if isinstance(author, str):
-        author = {}
-    sec_uid = author.get("sec_uid", "unknown")
-    nickname = author.get("nickname", sec_uid)
+    # Find or create account - nickname/sec_uid are top-level in TikTokDownloader response
+    sec_uid = detail.get("sec_uid", "unknown")
+    nickname = detail.get("nickname", "") or sec_uid
     folder_name = fm.sanitize_folder_name(nickname)
     fm.ensure_account_dir(folder_name)
 
@@ -352,10 +351,19 @@ async def single_download(body: SingleDownloadRequest, request: Request, backgro
     return await db.get_download_job(job["id"])
 
 
-@router.get("", response_model=list[DownloadJobResponse])
+@router.get("")
 async def list_download_jobs(request: Request):
     db = request.app.state.db
-    return await db.get_download_jobs()
+    jobs = await db.get_download_jobs()
+    accounts = {a["id"]: a for a in await db.get_accounts()}
+    for job in jobs:
+        account = accounts.get(job.get("account_id"))
+        if account:
+            job["account_name"] = account["nickname"]
+            job["platform"] = account["platform"]
+        items = await db.get_download_items(job["id"])
+        job["items"] = items
+    return jobs
 
 
 @router.get("/{job_id}", response_model=DownloadJobResponse)

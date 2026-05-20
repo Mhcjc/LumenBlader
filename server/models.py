@@ -47,6 +47,8 @@ class AccountResponse(BaseModel):
 class DownloadJobResponse(BaseModel):
     id: str
     account_id: str
+    account_name: Optional[str] = None
+    platform: Optional[str] = None
     earliest: str
     latest: str
     status: str
