@@ -14,6 +14,7 @@ async def start_analysis(body: AnalysisStartRequest, request: Request, backgroun
     db = request.app.state.db
     analyzer = request.app.state.analyzer
     fm = request.app.state.file_manager
+    transcriber = request.app.state.transcriber
 
     job = await db.insert_analysis_job(
         video_path=body.video_path,
@@ -21,7 +22,7 @@ async def start_analysis(body: AnalysisStartRequest, request: Request, backgroun
     )
 
     background_tasks.add_task(
-        _run_analysis, db, analyzer, fm, job["id"], body.video_path, body.mode
+        _run_analysis, db, analyzer, fm, transcriber, job["id"], body.video_path, body.mode
     )
 
     return job
@@ -32,23 +33,24 @@ async def batch_analysis(body: AnalysisBatchRequest, request: Request, backgroun
     db = request.app.state.db
     analyzer = request.app.state.analyzer
     fm = request.app.state.file_manager
+    transcriber = request.app.state.transcriber
     account = await db.get_account(body.account_id)
     if not account:
         raise HTTPException(404, "博主不存在")
 
     videos = fm.list_videos(account["folder_name"])
 
-    # Check existing jobs with same mode to avoid duplicates
+    # Skip videos that already have active (non-completed) jobs with same mode
     all_jobs = await db.get_analysis_jobs()
-    existing = set()
+    active = set()
     for job in all_jobs:
-        if job["status"] in ("pending", "processing", "completed") and job.get("mode") == body.mode:
-            existing.add(Path(job["video_path"]).stem)
+        if job["status"] in ("pending", "processing") and job.get("mode") == body.mode:
+            active.add(Path(job["video_path"]).stem)
 
     jobs = []
     for video in videos:
         video_stem = Path(video["name"]).stem
-        if video_stem not in existing:
+        if video_stem not in active:
             job = await db.insert_analysis_job(
                 video_path=video["path"],
                 mode=body.mode,
@@ -56,7 +58,7 @@ async def batch_analysis(body: AnalysisBatchRequest, request: Request, backgroun
             jobs.append(job)
 
     background_tasks.add_task(
-        _run_batch_analysis, db, analyzer, fm, jobs, body.mode
+        _run_batch_analysis, db, analyzer, fm, transcriber, jobs, body.mode
     )
 
     return {"created": len(jobs), "job_ids": [j["id"] for j in jobs]}
@@ -71,29 +73,45 @@ async def get_analysis_job(job_id: str, request: Request):
     return job
 
 
-async def _run_analysis(db, analyzer, fm, job_id, video_path, mode):
+async def _run_analysis(db, analyzer, fm, transcriber, job_id, video_path, mode):
     try:
         await db.update_analysis_job(job_id, status="processing")
 
-        video_name = Path(video_path).stem
+        video_p = Path(video_path)
+        video_name = video_p.stem
         title = video_name
 
-        # transcript为空是因为还没有集成Whisper音频转文字，后续会补充
+        # Transcribe video audio if transcriber is available
+        transcript = ""
+        if transcriber.is_available():
+            try:
+                transcript = await transcriber.transcribe(video_p)
+                # Save transcript alongside video
+                transcript_path = video_p.parent / f"{video_name}_transcript.txt"
+                transcript_path.write_text(transcript, encoding="utf-8")
+                logger.info(f"Transcript saved to {transcript_path}")
+            except Exception as e:
+                logger.warning(f"Transcription failed for {video_path}: {e}")
+                transcript = ""
+        else:
+            logger.info("Transcriber not available, skipping transcription")
+
         if mode == "full":
-            result = await analyzer.generate_full_analysis(
+            result = await analyzer.generate_full_prediction(
                 video_title=title,
-                transcript="",
+                transcript=transcript,
             )
         else:
-            result = await analyzer.generate_summary(
+            result = await analyzer.generate_score_report(
                 video_title=title,
-                transcript="",
+                transcript=transcript,
+                video_path=video_path,
             )
 
         # Find account folder from video path
-        video_p = Path(video_path)
         account_folder = video_p.parent.parent.name
-        analysis_path = fm.write_analysis(account_folder, f"{video_name}.md", result)
+        suffix = "_full" if mode == "full" else ""
+        analysis_path = fm.write_analysis(account_folder, f"{video_name}{suffix}.md", result)
 
         await db.update_analysis_job(
             job_id,
@@ -105,6 +123,6 @@ async def _run_analysis(db, analyzer, fm, job_id, video_path, mode):
         await db.update_analysis_job(job_id, status="failed", error=str(e))
 
 
-async def _run_batch_analysis(db, analyzer, fm, jobs, mode):
+async def _run_batch_analysis(db, analyzer, fm, transcriber, jobs, mode):
     for job in jobs:
-        await _run_analysis(db, analyzer, fm, job["id"], job["video_path"], mode)
+        await _run_analysis(db, analyzer, fm, transcriber, job["id"], job["video_path"], mode)
