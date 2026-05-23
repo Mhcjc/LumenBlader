@@ -71,8 +71,8 @@ async function loadAccountAnalysis(folderName, el) {
             </div>
             <div class="analysis-toolbar-right">
                 <select class="input" id="analysis-mode" style="width:auto;padding:6px 32px 6px 12px;font-size:13px">
-                    <option value="summary">摘要模式</option>
-                    <option value="full">Full 分析</option>
+                    <option value="summary">摘要评分 (cheat-score)</option>
+                    <option value="full">完整预测 (score + predict)</option>
                 </select>
                 <button class="btn btn-primary btn-sm" onclick="batchAnalyze()">批量分析</button>
             </div>
@@ -105,6 +105,26 @@ async function loadAccountAnalysis(folderName, el) {
 
         const hasActiveJobs = Object.values(analysisJobs).some(s => s === 'pending' || s === 'processing');
 
+        // Build mode-aware analysis map: stem -> { summary: bool, full: bool }
+        const analysisMap = {};
+        for (const a of analysis) {
+            const name = a.name.replace('.md', '');
+            let stem = name;
+            let mode = 'summary';
+            if (name.endsWith('_full')) {
+                stem = name.slice(0, -5);
+                mode = 'full';
+            }
+            if (!analysisMap[stem]) analysisMap[stem] = { summary: false, full: false };
+            analysisMap[stem][mode] = true;
+        }
+        // Also mark legacy files (no suffix) as summary
+        for (const stem of Object.keys(analysisMap)) {
+            if (!analysisMap[stem].summary && !analysisMap[stem].full) {
+                analysisMap[stem].summary = true;
+            }
+        }
+
         const videoGrid = document.getElementById('video-list');
         if (hasActiveJobs) {
             const progressDiv = document.createElement('div');
@@ -113,7 +133,7 @@ async function loadAccountAnalysis(folderName, el) {
             videoGrid.parentNode.insertBefore(progressDiv, videoGrid);
         }
 
-        renderVideoList(videos, analyzedSet, analysisJobs);
+        renderVideoList(videos, analysisMap, analysisJobs);
 
         if (hasActiveJobs) startAnalysisPolling(folderName);
     } catch (e) {
@@ -121,19 +141,26 @@ async function loadAccountAnalysis(folderName, el) {
     }
 }
 
-function renderVideoList(videos, analyzedSet, analysisJobs) {
+function renderVideoList(videos, analysisMap, analysisJobs) {
     const videoList = document.getElementById('video-list');
     if (!videoList) return;
 
     videoList.innerHTML = videos.map((v, i) => {
         const stem = v.name.replace('.mp4', '');
-        const hasAnalysis = analyzedSet.has(stem);
+        const modes = analysisMap[stem];
+        const hasAnalysis = modes && (modes.summary || modes.full);
         const jobStatus = analysisJobs[stem];
         let status = 'unanalyzed';
         let badge = '<span class="badge badge-warning">未分析</span>';
         if (hasAnalysis) {
             status = 'analyzed';
-            badge = '<span class="badge badge-success">已分析</span>';
+            if (modes.summary && modes.full) {
+                badge = '<span class="badge badge-success">评分 + 预测</span>';
+            } else if (modes.full) {
+                badge = '<span class="badge badge-info">已预测</span>';
+            } else {
+                badge = '<span class="badge badge-success">已评分</span>';
+            }
         } else if (jobStatus === 'failed') {
             status = 'failed';
             badge = '<span class="badge badge-danger">失败</span>';
@@ -163,12 +190,25 @@ function refreshVideoList(data) {
     const videos = data.videos || [];
     const analysis = data.analysis || [];
     const analysisJobs = data.analysis_jobs || {};
-    const analyzedSet = new Set(analysis.map(a => a.name.replace('.md', '')));
+
+    // Build mode-aware analysis map
+    const analysisMap = {};
+    for (const a of analysis) {
+        const name = a.name.replace('.md', '');
+        let stem = name;
+        let mode = 'summary';
+        if (name.endsWith('_full')) {
+            stem = name.slice(0, -5);
+            mode = 'full';
+        }
+        if (!analysisMap[stem]) analysisMap[stem] = { summary: false, full: false };
+        analysisMap[stem][mode] = true;
+    }
 
     const progressBar = document.getElementById('analysis-progress');
     if (progressBar) {
         const total = videos.length;
-        const done = videos.filter(v => analyzedSet.has(v.name.replace('.mp4', ''))).length;
+        const done = videos.filter(v => analysisMap[v.name.replace('.mp4', '')]).length;
         const failed = Object.values(analysisJobs).filter(s => s === 'failed').length;
         const active = Object.values(analysisJobs).filter(s => s === 'pending' || s === 'processing').length;
         const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -186,7 +226,7 @@ function refreshVideoList(data) {
         }
     }
 
-    renderVideoList(videos, analyzedSet, analysisJobs);
+    renderVideoList(videos, analysisMap, analysisJobs);
 }
 
 async function toggleReport(folderName, stem, cardEl) {
@@ -204,6 +244,10 @@ async function toggleReport(folderName, stem, cardEl) {
     });
     document.getElementById('video-list').classList.add('has-report');
 
+    const mode = document.getElementById('analysis-mode')?.value || 'summary';
+    const suffix = mode === 'full' ? '_full' : '';
+    const fileName = `${stem}${suffix}.md`;
+
     container.innerHTML = `
         <div class="report-panel">
             <div class="report-header">
@@ -217,7 +261,7 @@ async function toggleReport(folderName, stem, cardEl) {
     `;
 
     try {
-        const data = await API.get(`/api/files/${folderName}/analysis/${stem}.md`);
+        const data = await API.get(`/api/files/${folderName}/analysis/${fileName}`);
         renderReport(data.content, stem);
     } catch (e) {
         container.innerHTML = `
@@ -305,12 +349,27 @@ function renderReport(markdown, stem) {
     const sections = splitMarkdownSections(markdown);
     const container = document.getElementById('report-container');
     const allText = sections.join(' ').toLowerCase();
-    const isFull = allText.includes('rubric') || allText.includes('爆款预测') || allText.includes('综合得分');
+    const isCheatScore = allText.includes('维度') && allText.includes('综合分');
+    const isFullPrediction = allText.includes('桶预测') || allText.includes('反事实');
+    const isLegacyFull = allText.includes('rubric') || allText.includes('爆款预测');
 
     let tabs;
     if (sections.length <= 2) {
         tabs = [{ label: '报告', sections: [0] }];
-    } else if (isFull && sections.length >= 6) {
+    } else if (isFullPrediction) {
+        tabs = [
+            { label: '评分', sections: [0, 1, 2] },
+            { label: '预测', sections: [3] },
+            { label: '锚点', sections: [4] },
+            { label: '反事实', sections: [5] },
+            { label: '校准', sections: [6] },
+        ];
+    } else if (isCheatScore) {
+        tabs = [
+            { label: '评分', sections: [0, 1] },
+            { label: '详情', sections: [2] },
+        ];
+    } else if (isLegacyFull && sections.length >= 6) {
         tabs = [
             { label: '摘要', sections: [0, 1, 2] },
             { label: '评分', sections: [3, 4] },
@@ -374,7 +433,7 @@ async function analyzeOne(folderName, stem) {
             video_path: `../materials/${folderName}/videos/${stem}.mp4`,
             mode,
         });
-        showToast('分析任务已创建', 'success');
+        showToast(`分析任务已创建（${mode === 'full' ? '完整预测' : '摘要评分'}）`, 'success');
         collapseReport();
         startAnalysisPolling(folderName);
     } catch (e) {
@@ -395,7 +454,11 @@ async function batchAnalyze() {
         if (!account) { showToast('未找到对应博主', 'error'); return; }
 
         const result = await API.post('/api/analysis/batch', { account_id: account.id, mode });
-        showToast(`已创建 ${result.created} 个分析任务`, 'success');
+        if (result.created > 0) {
+            showToast(`已创建 ${result.created} 个分析任务（${mode === 'full' ? '完整预测' : '摘要评分'}）`, 'success');
+        } else {
+            showToast('所有视频均已有进行中的分析任务', 'info');
+        }
         startAnalysisPolling(currentFolder);
     } catch (e) {
         showToast('批量分析失败: ' + e.message, 'error');
