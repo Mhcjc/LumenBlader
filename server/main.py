@@ -1,3 +1,4 @@
+import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,7 +11,9 @@ from .database import Database
 from .services.file_manager import FileManager
 from .services.downloader import TikTokDownloaderClient
 from .services.analyzer import ContentAnalyzer
+from .services.transcriber import Transcriber
 from .routers import accounts, downloads, analysis, files, settings
+from .routers.settings import health_router
 
 
 def create_app(config: AppConfig, db: Database = None) -> FastAPI:
@@ -20,6 +23,10 @@ def create_app(config: AppConfig, db: Database = None) -> FastAPI:
         materials_root = (base_dir / materials_root).resolve()
 
     db_path = base_dir / "data.db"
+    if not db_path.exists():
+        init_db = base_dir / "init.db"
+        if init_db.exists():
+            shutil.copy2(init_db, db_path)
     if db is None:
         db = Database(db_path)
 
@@ -30,6 +37,7 @@ def create_app(config: AppConfig, db: Database = None) -> FastAPI:
         base_url=config.ai.base_url,
         model=config.ai.model,
     )
+    transcriber = Transcriber()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -45,12 +53,14 @@ def create_app(config: AppConfig, db: Database = None) -> FastAPI:
     app.state.file_manager = file_manager
     app.state.downloader = downloader
     app.state.analyzer = analyzer
+    app.state.transcriber = transcriber
 
     app.include_router(accounts.router)
     app.include_router(downloads.router)
     app.include_router(analysis.router)
     app.include_router(files.router)
     app.include_router(settings.router)
+    app.include_router(health_router)
 
     frontend_dir = base_dir / "frontend"
     if frontend_dir.exists():
