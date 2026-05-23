@@ -1,4 +1,5 @@
 import re
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -13,6 +14,13 @@ class FileManager:
         (account_dir / "videos").mkdir(parents=True, exist_ok=True)
         (account_dir / "analysis").mkdir(parents=True, exist_ok=True)
         return account_dir
+
+    def delete_account_dir(self, folder_name: str) -> bool:
+        account_dir = self.root / folder_name
+        if account_dir.exists():
+            shutil.rmtree(account_dir)
+            return True
+        return False
 
     def list_videos(self, folder_name: str) -> list[dict]:
         videos_dir = self.root / folder_name / "videos"

@@ -1,6 +1,11 @@
 let pollInterval = null;
 let currentTaskFilter = 'all';
 
+function isCookieError(msg) {
+    const keywords = ['cookie', 'Cookie', 'JSON', '超时', 'timeout', '502', '获取视频详情失败', '无法连接'];
+    return keywords.some(k => msg.includes(k));
+}
+
 function getTimeAgo(dateStr) {
     const now = new Date();
     const date = new Date(dateStr);
@@ -205,6 +210,10 @@ async function submitSingleDownload() {
         startDownloadPolling();
     } catch (e) {
         showToast('下载失败: ' + e.message, 'error');
+        if (isCookieError(e.message)) {
+            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        }
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 下载';

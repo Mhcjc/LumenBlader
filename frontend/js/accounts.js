@@ -66,6 +66,11 @@ async function submitAddAccount() {
     const url = document.getElementById('add-account-url').value.trim();
     if (!url) { showToast('请输入链接', 'error'); return; }
 
+    const btn = document.querySelector('#add-account-overlay .btn-primary');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 添加中';
+
     try {
         await API.post('/api/accounts', { url, platform: '' });
         closeAddAccount();
@@ -73,14 +78,22 @@ async function submitAddAccount() {
         loadAccounts();
     } catch (e) {
         showToast('添加失败: ' + e.message, 'error');
+        if (typeof isCookieError === 'function' && isCookieError(e.message)) {
+            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
     }
 }
 
 async function deleteAccount(id) {
-    if (!confirm('确定删除该博主？本地文件不会被删除。')) return;
+    if (!confirm('确定删除该博主？')) return;
+    const deleteFiles = confirm('是否同时删除本地的视频和分析文件？\n\n点「确定」删除文件，点「取消」仅移除博主记录。');
     try {
-        await API.del(`/api/accounts/${id}`);
-        showToast('博主已删除', 'success');
+        await API.del(`/api/accounts/${id}?delete_files=${deleteFiles}`);
+        showToast(deleteFiles ? '博主及本地文件已删除' : '博主已删除（本地文件保留）', 'success');
         loadAccounts();
     } catch (e) {
         showToast('删除失败: ' + e.message, 'error');
@@ -114,6 +127,10 @@ async function submitBatchDownload() {
         switchPage('downloads');
     } catch (e) {
         showToast('批量下载失败: ' + e.message, 'error');
+        if (typeof isCookieError === 'function' && isCookieError(e.message)) {
+            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        }
     } finally {
         btn.disabled = false;
         btn.textContent = '开始下载';

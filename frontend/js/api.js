@@ -1,6 +1,21 @@
 const API = {
+    _timeout: 30000,
+
+    async _fetch(url, options = {}) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this._timeout);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error('请求超时，请检查 TikTokDownloader 服务是否正常');
+            throw e;
+        } finally {
+            clearTimeout(timer);
+        }
+    },
+
     async get(url) {
-        const resp = await fetch(url);
+        const resp = await this._fetch(url);
         if (!resp.ok) {
             const text = await resp.text().catch(() => '');
             let msg = text;
@@ -11,7 +26,7 @@ const API = {
     },
 
     async post(url, data) {
-        const resp = await fetch(url, {
+        const resp = await this._fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -26,7 +41,7 @@ const API = {
     },
 
     async patch(url, data) {
-        const resp = await fetch(url, {
+        const resp = await this._fetch(url, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -41,7 +56,7 @@ const API = {
     },
 
     async del(url) {
-        const resp = await fetch(url, { method: 'DELETE' });
+        const resp = await this._fetch(url, { method: 'DELETE' });
         if (!resp.ok) {
             const text = await resp.text().catch(() => '');
             let msg = text;

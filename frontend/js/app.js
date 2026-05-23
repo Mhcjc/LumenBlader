@@ -40,6 +40,34 @@ function togglePassword(id) {
     input.type = input.type === 'password' ? 'text' : 'password';
 }
 
+function dismissCookieBanner() {
+    document.getElementById('cookie-banner').style.display = 'none';
+    sessionStorage.setItem('cookie-banner-dismissed', '1');
+}
+
+async function checkCookieHealth() {
+    try {
+        const data = await API.get('/api/health/cookie');
+        const banner = document.getElementById('cookie-banner');
+        const text = document.getElementById('cookie-banner-text');
+        const dismissed = sessionStorage.getItem('cookie-banner-dismissed');
+
+        if (!data.downloader_alive) {
+            text.textContent = 'TikTokDownloader 服务未运行，下载功能不可用';
+            banner.style.display = '';
+            sessionStorage.removeItem('cookie-banner-dismissed');
+        } else if (!data.douyin) {
+            text.textContent = data.message || '抖音 Cookie 已失效，下载功能可能无法正常使用';
+            if (!dismissed) banner.style.display = '';
+        } else {
+            banner.style.display = 'none';
+            sessionStorage.removeItem('cookie-banner-dismissed');
+        }
+    } catch (e) {
+        // Health check failed silently — don't bother the user
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Tab navigation
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -73,4 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     if (typeof loadAccounts === 'function') loadAccounts();
+
+    // Cookie health check
+    checkCookieHealth();
 });

@@ -141,11 +141,14 @@ LumenBlader/
 │   ├── app.html         # 工作台
 │   ├── js/              # 页面逻辑
 │   └── css/             # 样式
-├── config.json          # 运行时配置
+├── init.db              # 数据库初始化文件（含空表结构，首次运行自动复制为 data.db）
+├── config.json          # 运行时配置（需自行创建，不纳入版本管理）
 ├── start.sh             # 一键启动脚本（同时启动 TikTokDownloader + LumenBlader）
 ├── run.py               # 仅启动 LumenBlader
 └── requirements.txt     # Python 依赖
 ```
+
+> **关于数据库：** `init.db` 包含空的表结构，首次启动时会自动复制为 `data.db`。运行时产生的数据存储在 `data.db` 中，不会提交到仓库。
 
 ## 截图
 

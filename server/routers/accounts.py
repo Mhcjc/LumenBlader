@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -37,14 +38,19 @@ async def create_account(body: AccountCreate, request: Request):
     cookie = config.tiktok_downloader.cookie_douyin if platform == "douyin" else config.tiktok_downloader.cookie_tiktok
     nickname = ""
     try:
-        videos = await downloader.fetch_account_videos(
-            sec_user_id=sec_user_id,
-            platform=platform,
-            cookie=cookie,
-            proxy=config.tiktok_downloader.proxy,
+        videos = await asyncio.wait_for(
+            downloader.fetch_account_videos(
+                sec_user_id=sec_user_id,
+                platform=platform,
+                cookie=cookie,
+                proxy=config.tiktok_downloader.proxy,
+            ),
+            timeout=15,
         )
         if videos and isinstance(videos, list) and len(videos) > 0:
             nickname = videos[0].get("nickname", "")
+    except asyncio.TimeoutError:
+        logger.warning("Timeout fetching account videos for nickname, using sec_uid as fallback")
     except Exception as e:
         logger.warning(f"Failed to fetch account videos for nickname: {e}")
 
@@ -65,10 +71,13 @@ async def create_account(body: AccountCreate, request: Request):
 
 
 @router.delete("/{account_id}")
-async def delete_account(account_id: str, request: Request):
+async def delete_account(account_id: str, request: Request, delete_files: bool = False):
     db = request.app.state.db
+    fm = request.app.state.file_manager
     account = await db.get_account(account_id)
     if not account:
         raise HTTPException(404, "博主不存在")
+    if delete_files:
+        fm.delete_account_dir(account["folder_name"])
     await db.delete_account(account_id)
-    return {"ok": True}
+    return {"ok": True, "files_deleted": delete_files}
