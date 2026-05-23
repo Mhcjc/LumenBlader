@@ -12,6 +12,24 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Check dependencies
+echo "Checking dependencies..."
+if command -v whisper-cpp >/dev/null 2>&1; then
+    echo "  whisper-cpp: OK"
+elif command -v whisper >/dev/null 2>&1; then
+    echo "  whisper (openai-whisper): OK"
+else
+    echo "  ⚠️  whisper not installed — video transcription will be skipped"
+    echo "     Install: brew install whisper-cpp"
+fi
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "  ❌ ffmpeg not installed — required for video processing"
+    echo "     Install: brew install ffmpeg"
+    exit 1
+fi
+echo ""
+
 echo "Starting TikTokDownloader (API mode)..."
 cd "$PARENT_DIR/TikTokDownloader"
 # Auto-select: language=1(zh_CN), disclaimer=YES, mode=5(Web API)
