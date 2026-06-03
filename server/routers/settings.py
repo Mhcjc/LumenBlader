@@ -47,7 +47,7 @@ async def check_cookie_health(request: Request):
 
     # Step 1: Check if TikTokDownloader is reachable
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=5, trust_env=False) as client:
             resp = await client.get(f"{base_url}/token")
             resp.raise_for_status()
             result["downloader_alive"] = True
@@ -61,7 +61,7 @@ async def check_cookie_health(request: Request):
         result["message"] = "抖音 Cookie 未配置"
     else:
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
                 resp = await client.post(
                     f"{base_url}/douyin/detail",
                     json={"detail_id": "7641528685723471139", "cookie": cookie},
@@ -80,7 +80,7 @@ async def check_cookie_health(request: Request):
     cookie_tk = config.tiktok_downloader.cookie_tiktok
     if cookie_tk:
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
                 resp = await client.post(
                     f"{base_url}/tiktok/detail",
                     json={"detail_id": "7441528685723471139", "cookie": cookie_tk},

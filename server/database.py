@@ -102,6 +102,13 @@ class Database:
         await self._conn.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
         await self._conn.commit()
 
+    async def update_account_nickname(self, account_id, nickname):
+        await self._conn.execute(
+            "UPDATE accounts SET nickname = ? WHERE id = ?",
+            (nickname, account_id),
+        )
+        await self._conn.commit()
+
     async def update_account_synced(self, account_id):
         now = datetime.utcnow().isoformat()
         await self._conn.execute(

@@ -1,5 +1,11 @@
 let currentBatchAccountId = null;
 
+function detectPlatformFromUrl(url) {
+    if (url.includes('douyin.com') || url.includes('iesdouyin.com')) return 'douyin';
+    if (url.includes('tiktok.com') || url.includes('vm.tiktok.com')) return 'tiktok';
+    return 'douyin'; // default
+}
+
 async function loadAccounts() {
     const container = document.getElementById('page-accounts');
     container.innerHTML = `
@@ -18,6 +24,7 @@ async function loadAccounts() {
 
     try {
         const accounts = await API.get('/api/accounts');
+        window._accounts = accounts;
         const list = document.getElementById('accounts-list');
 
         if (accounts.length === 0) {
@@ -35,12 +42,15 @@ async function loadAccounts() {
                 <div class="account-card-top">
                     <div class="account-card-info">
                         <span class="badge badge-${acc.platform}">${acc.platform === 'douyin' ? '抖音' : 'TikTok'}</span>
-                        <div class="account-name">${acc.nickname}</div>
+                        <div class="account-name">${acc.nickname === '未知博主' ? '<span style="opacity:0.6">未知博主</span>' : acc.nickname}</div>
                         <div class="account-meta">${acc.last_synced_at ? new Date(acc.last_synced_at).toLocaleDateString('zh-CN') : '未同步'}</div>
                     </div>
-                    <button class="btn-icon btn-icon-danger" onclick="deleteAccount('${acc.id}')" title="删除">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                    </button>
+                    <div style="display:flex;gap:4px;align-items:center">
+                        ${acc.nickname === '未知博主' ? `<button class="btn-icon" onclick="refreshNickname('${acc.id}')" title="重新获取昵称"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115.4-6.4L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15.4 6.4L3 16"/></svg></button>` : ''}
+                        <button class="btn-icon btn-icon-danger" onclick="deleteAccount('${acc.id}')" title="删除">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="account-actions">
                     <button class="btn btn-primary btn-sm" onclick="startBatchDownload('${acc.id}')">批量下载</button>
@@ -66,26 +76,29 @@ async function submitAddAccount() {
     const url = document.getElementById('add-account-url').value.trim();
     if (!url) { showToast('请输入链接', 'error'); return; }
 
-    const btn = document.querySelector('#add-account-overlay .btn-primary');
-    const origText = btn.textContent;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 添加中';
+    const platform = detectPlatformFromUrl(url);
+    const result = await callWithCookieCheck(platform, async () => {
+        const btn = document.querySelector('#add-account-overlay .btn-primary');
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 添加中';
 
-    try {
-        await API.post('/api/accounts', { url, platform: '' });
-        closeAddAccount();
-        showToast('博主添加成功', 'success');
-        loadAccounts();
-    } catch (e) {
-        showToast('添加失败: ' + e.message, 'error');
-        if (typeof isCookieError === 'function' && isCookieError(e.message)) {
-            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
-            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        try {
+            await API.post('/api/accounts', { url, platform: '' });
+            closeAddAccount();
+            showToast('博主添加成功', 'success');
+            loadAccounts();
+        } catch (e) {
+            showToast('添加失败: ' + e.message, 'error');
+            if (typeof isCookieError === 'function' && isCookieError(e.message)) {
+                showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+                if (typeof checkCookieHealth === 'function') checkCookieHealth();
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = origText;
         }
-    } finally {
-        btn.disabled = false;
-        btn.textContent = origText;
-    }
+    });
 }
 
 async function deleteAccount(id) {
@@ -113,28 +126,47 @@ function closeBatchDownload() {
 
 async function submitBatchDownload() {
     if (!currentBatchAccountId) return;
-    const earliest = document.getElementById('batch-earliest').value || '';
-    const latest = document.getElementById('batch-latest').value || '';
+    const acc = (window._accounts || []).find(a => a.id === currentBatchAccountId);
+    const platform = acc ? acc.platform : 'douyin';
 
-    const btn = document.getElementById('batch-submit-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 创建中';
+    await callWithCookieCheck(platform, async () => {
+        const earliest = document.getElementById('batch-earliest').value || '';
+        const latest = document.getElementById('batch-latest').value || '';
 
-    try {
-        await API.post('/api/downloads/batch', { account_id: currentBatchAccountId, earliest, latest });
-        closeBatchDownload();
-        showToast('批量下载任务已创建', 'success');
-        switchPage('downloads');
-    } catch (e) {
-        showToast('批量下载失败: ' + e.message, 'error');
-        if (typeof isCookieError === 'function' && isCookieError(e.message)) {
-            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
-            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        const btn = document.getElementById('batch-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 创建中';
+
+        try {
+            await API.post('/api/downloads/batch', { account_id: currentBatchAccountId, earliest, latest });
+            closeBatchDownload();
+            showToast('批量下载任务已创建', 'success');
+            switchPage('downloads');
+        } catch (e) {
+            showToast('批量下载失败: ' + e.message, 'error');
+            if (typeof isCookieError === 'function' && isCookieError(e.message)) {
+                showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+                if (typeof checkCookieHealth === 'function') checkCookieHealth();
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '开始下载';
         }
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '开始下载';
-    }
+    });
+}
+
+async function refreshNickname(id) {
+    const acc = (window._accounts || []).find(a => a.id === id);
+    const platform = acc ? acc.platform : 'douyin';
+    await callWithCookieCheck(platform, async () => {
+        try {
+            const result = await API.post(`/api/accounts/${id}/refresh`);
+            showToast(`昵称已更新: ${result.nickname}`, 'success');
+            loadAccounts();
+        } catch (e) {
+            showToast('获取昵称失败: ' + e.message, 'error');
+        }
+    });
 }
 
 function viewAccountFiles(folderName) {

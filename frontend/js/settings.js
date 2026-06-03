@@ -107,6 +107,9 @@ async function saveSettings() {
         await API.patch('/api/settings', data);
         showToast('设置已保存', 'success');
         closeModal('settings-overlay');
+        // Invalidate cookie health cache so next request re-checks
+        localStorage.removeItem('cookie_health_cache');
+        if (typeof checkCookieHealth === 'function') checkCookieHealth();
     } catch (e) {
         showToast('保存失败: ' + e.message, 'error');
     }

@@ -9,6 +9,9 @@ class FileManager:
     def __init__(self, materials_root: Path):
         self.root = materials_root
 
+    def account_dir_exists(self, folder_name: str) -> bool:
+        return (self.root / folder_name).exists()
+
     def ensure_account_dir(self, folder_name: str) -> Path:
         account_dir = self.root / folder_name
         (account_dir / "videos").mkdir(parents=True, exist_ok=True)

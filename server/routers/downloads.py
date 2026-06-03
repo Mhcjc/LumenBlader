@@ -144,8 +144,8 @@ async def _process_single_download(app_state, job_id: str, item_id: str, video_i
         await _update_job_counts(db, job_id)
 
 
-async def _process_batch_download(app_state, job_id: str, account_id: str, videos: list[dict]):
-    """Background task: download all videos in a batch job."""
+async def _prepare_and_download_batch(app_state, job_id: str, account_id: str, earliest: str, latest: str):
+    """Background task: fetch video list, create items, then download all videos."""
     db = app_state.db
     downloader = app_state.downloader
     config = app_state.config
@@ -159,9 +159,40 @@ async def _process_batch_download(app_state, job_id: str, account_id: str, video
     folder_name = account["folder_name"]
     cookie = config.tiktok_downloader.cookie_douyin if platform == "douyin" else config.tiktok_downloader.cookie_tiktok
 
-    await db.update_download_job(job_id, status="downloading")
-    items = await db.get_download_items(job_id)
+    # Step 1: Fetch video list (slow, runs in background)
+    try:
+        videos = await downloader.fetch_account_videos(
+            sec_user_id=account["sec_uid"],
+            platform=platform,
+            earliest=earliest,
+            latest=latest,
+            cookie=cookie,
+            proxy=config.tiktok_downloader.proxy,
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch video list for batch download: {e}")
+        await db.update_download_job(job_id, status="failed")
+        return
 
+    if _is_cancelled(job_id):
+        return
+
+    if not videos:
+        await db.update_download_job(job_id, status="failed")
+        return
+
+    # Step 2: Create download items
+    for video in videos:
+        await db.insert_download_item(
+            job_id=job_id,
+            video_id=video.get("id", ""),
+            title=video.get("desc", ""),
+        )
+
+    await db.update_download_job(job_id, total_videos=len(videos), status="downloading")
+
+    # Step 3: Download each video
+    items = await db.get_download_items(job_id)
     for item in items:
         if _is_cancelled(job_id):
             await db.update_download_job(job_id, status="cancelled", finished_at=datetime.utcnow().isoformat())
@@ -244,48 +275,25 @@ async def _update_job_counts(db, job_id: str):
 @router.post("/batch", response_model=DownloadJobResponse)
 async def batch_download(body: BatchDownloadRequest, request: Request, background_tasks: BackgroundTasks):
     db = request.app.state.db
-    downloader = request.app.state.downloader
-    config = request.app.state.config
 
     account = await db.get_account(body.account_id)
     if not account:
         raise HTTPException(404, "博主不存在")
 
-    try:
-        videos = await downloader.fetch_account_videos(
-            sec_user_id=account["sec_uid"],
-            platform=account["platform"],
-            earliest=body.earliest,
-            latest=body.latest,
-            cookie=config.tiktok_downloader.cookie_douyin if account["platform"] == "douyin" else config.tiktok_downloader.cookie_tiktok,
-            proxy=config.tiktok_downloader.proxy,
-        )
-    except Exception as e:
-        raise HTTPException(502, f"无法连接 TikTokDownloader 服务: {e}")
-
+    # Create job immediately and return — video list fetch + download runs in background
     job = await db.insert_download_job(
         account_id=body.account_id,
         earliest=body.earliest,
         latest=body.latest,
     )
+    await db.update_download_job(job["id"], status="pending")
 
-    for video in videos:
-        await db.insert_download_item(
-            job_id=job["id"],
-            video_id=video.get("id", ""),
-            title=video.get("desc", ""),
-        )
-
-    await db.update_download_job(
-        job["id"],
-        total_videos=len(videos),
-        status="pending",
+    background_tasks.add_task(
+        _prepare_and_download_batch,
+        request.app.state, job["id"], body.account_id, body.earliest, body.latest,
     )
 
-    background_tasks.add_task(_process_batch_download, request.app.state, job["id"], body.account_id, videos)
-
-    updated_job = await db.get_download_job(job["id"])
-    return updated_job
+    return await db.get_download_job(job["id"])
 
 
 @router.post("/single", response_model=DownloadJobResponse)

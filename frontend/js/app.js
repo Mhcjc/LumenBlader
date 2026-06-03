@@ -45,6 +45,42 @@ function dismissCookieBanner() {
     sessionStorage.setItem('cookie-banner-dismissed', '1');
 }
 
+const COOKIE_CHECK_CACHE_KEY = 'cookie_health_cache';
+const COOKIE_CHECK_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function isCookieValid(platform) {
+    const cached = localStorage.getItem(COOKIE_CHECK_CACHE_KEY);
+    if (cached) {
+        try {
+            const { douyin, tiktok, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < COOKIE_CHECK_TTL) {
+                return platform === 'tiktok' ? tiktok : douyin;
+            }
+        } catch {}
+    }
+    try {
+        const data = await API.get('/api/health/cookie');
+        localStorage.setItem(COOKIE_CHECK_CACHE_KEY, JSON.stringify({
+            douyin: data.douyin,
+            tiktok: data.tiktok,
+            timestamp: Date.now(),
+        }));
+        return platform === 'tiktok' ? data.tiktok : data.douyin;
+    } catch {
+        return true; // If health check fails, don't block the request
+    }
+}
+
+async function callWithCookieCheck(platform, apiCall) {
+    if (!(await isCookieValid(platform))) {
+        const label = platform === 'tiktok' ? 'TikTok' : '抖音';
+        showToast(`${label} Cookie 已过期，请在设置中更新`, 'error');
+        if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        return;
+    }
+    return await apiCall();
+}
+
 async function checkCookieHealth() {
     try {
         const data = await API.get('/api/health/cookie');

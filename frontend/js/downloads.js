@@ -198,26 +198,29 @@ async function submitSingleDownload() {
     const url = document.getElementById('single-url').value.trim();
     if (!url) { showToast('请输入链接', 'error'); return; }
 
-    const btn = document.getElementById('single-download-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> 下载中';
+    const platform = (url.includes('douyin.com') || url.includes('iesdouyin.com')) ? 'douyin' : 'tiktok';
+    await callWithCookieCheck(platform, async () => {
+        const btn = document.getElementById('single-download-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 下载中';
 
-    try {
-        await API.post('/api/downloads/single', { url });
-        document.getElementById('single-url').value = '';
-        showToast('下载任务已创建', 'success');
-        refreshDownloadJobs();
-        startDownloadPolling();
-    } catch (e) {
-        showToast('下载失败: ' + e.message, 'error');
-        if (isCookieError(e.message)) {
-            showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
-            if (typeof checkCookieHealth === 'function') checkCookieHealth();
+        try {
+            await API.post('/api/downloads/single', { url });
+            document.getElementById('single-url').value = '';
+            showToast('下载任务已创建', 'success');
+            refreshDownloadJobs();
+            startDownloadPolling();
+        } catch (e) {
+            showToast('下载失败: ' + e.message, 'error');
+            if (isCookieError(e.message)) {
+                showToast('可能是 Cookie 已失效，请在设置中更新', 'error');
+                if (typeof checkCookieHealth === 'function') checkCookieHealth();
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 下载';
         }
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 下载';
-    }
+    });
 }
 
 function startDownloadPolling() {
@@ -252,14 +255,18 @@ async function deleteJob(jobId) {
 }
 
 async function retryFailed(jobId) {
-    try {
-        const result = await API.post(`/api/downloads/${jobId}/retry`);
-        showToast(`正在重试 ${result.retrying} 个失败项...`, 'success');
-        refreshDownloadJobs();
-        startDownloadPolling();
-    } catch (e) {
-        showToast('重试失败: ' + e.message, 'error');
-    }
+    const job = (window._downloadJobs || []).find(j => j.id === jobId);
+    const platform = job ? (job.platform || 'douyin') : 'douyin';
+    await callWithCookieCheck(platform, async () => {
+        try {
+            const result = await API.post(`/api/downloads/${jobId}/retry`);
+            showToast(`正在重试 ${result.retrying} 个失败项...`, 'success');
+            refreshDownloadJobs();
+            startDownloadPolling();
+        } catch (e) {
+            showToast('重试失败: ' + e.message, 'error');
+        }
+    });
 }
 
 async function viewJobDetail(jobId) {
@@ -321,13 +328,17 @@ function closeTaskDetail() {
 }
 
 async function retryItem(jobId, itemId) {
-    try {
-        await API.post(`/api/downloads/${jobId}/retry`);
-        showToast('正在重试...', 'success');
-        viewJobDetail(jobId);
-        refreshDownloadJobs();
-        startDownloadPolling();
-    } catch (e) {
-        showToast('重试失败: ' + e.message, 'error');
-    }
+    const job = (window._downloadJobs || []).find(j => j.id === jobId);
+    const platform = job ? (job.platform || 'douyin') : 'douyin';
+    await callWithCookieCheck(platform, async () => {
+        try {
+            await API.post(`/api/downloads/${jobId}/retry`);
+            showToast('正在重试...', 'success');
+            viewJobDetail(jobId);
+            refreshDownloadJobs();
+            startDownloadPolling();
+        } catch (e) {
+            showToast('重试失败: ' + e.message, 'error');
+        }
+    });
 }

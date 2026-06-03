@@ -9,6 +9,8 @@ import httpx
 class TikTokDownloaderClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
+        # Bypass proxy for local TikTokDownloader connections
+        self._client_kwargs = {"trust_env": False}
 
     async def fetch_account_videos(
         self,
@@ -33,7 +35,7 @@ class TikTokDownloaderClient:
         if proxy:
             payload["proxy"] = proxy
 
-        async with httpx.AsyncClient(timeout=300) as http:
+        async with httpx.AsyncClient(timeout=300, trust_env=False) as http:
             resp = await http.post(f"{self.base_url}{endpoint}", json=payload)
             resp.raise_for_status()
             result = resp.json()
@@ -55,7 +57,7 @@ class TikTokDownloaderClient:
         if proxy:
             payload["proxy"] = proxy
 
-        async with httpx.AsyncClient(timeout=60) as http:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as http:
             resp = await http.post(f"{self.base_url}{endpoint}", json=payload)
             resp.raise_for_status()
             result = resp.json()
@@ -77,7 +79,7 @@ class TikTokDownloaderClient:
         if proxy:
             payload["proxy"] = proxy
 
-        async with httpx.AsyncClient(timeout=60) as http:
+        async with httpx.AsyncClient(timeout=30, trust_env=False) as http:
             resp = await http.post(f"{self.base_url}{endpoint}", json=payload)
             resp.raise_for_status()
             result = resp.json()
@@ -88,7 +90,7 @@ class TikTokDownloaderClient:
     async def resolve_short_url(self, url: str) -> str:
         if "v.douyin.com" not in url and "vm.tiktok.com" not in url:
             return url
-        async with httpx.AsyncClient(timeout=30, follow_redirects=False) as http:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=False, trust_env=False) as http:
             resp = await http.get(url)
             if resp.status_code in (301, 302, 303, 307, 308):
                 return str(resp.headers.get("location", url))
@@ -97,7 +99,7 @@ class TikTokDownloaderClient:
     async def download_file(self, url: str, dest: Path) -> Path:
         """Download a file from URL to dest path. Returns the dest path on success."""
         dest.parent.mkdir(parents=True, exist_ok=True)
-        async with httpx.AsyncClient(timeout=300, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=300, follow_redirects=True, trust_env=False) as client:
             async with client.stream("GET", url) as resp:
                 resp.raise_for_status()
                 with open(dest, "wb") as f:
